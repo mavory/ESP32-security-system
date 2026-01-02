@@ -4,7 +4,7 @@ This is a diary where I describe everything about how I created this project.
 
 ## So how much time did I spend on that?
 
-I think I spent about 25 hours on this project.
+I think I spent about 26.5 hours on this project.
 
 ## My worst hangups
 
@@ -151,5 +151,75 @@ How to say it.... I started putting all the things in the box, everything fit ex
 I made the box too short, so I can't close the cables and so on with it anymore. So I had to redo the case again and hopefully it will be good.
 
 ![image](https://blueprint.hackclub.com/user-attachments/representations/redirect/eyJfcmFpbHMiOnsiZGF0YSI6Njc1NzEsInB1ciI6ImJsb2JfaWQifX0=--6c037f3198fba3491a45f5db2b1e85ca828acec9/eyJfcmFpbHMiOnsiZGF0YSI6eyJmb3JtYXQiOiJqcGciLCJyZXNpemVfdG9fbGltaXQiOlsyMDAwLDIwMDBdLCJjb252ZXJ0Ijoid2VicCIsInNhdmVyIjp7InF1YWxpdHkiOjgwLCJzdHJpcCI6dHJ1ZX19LCJwdXIiOiJ2YXJpYXRpb24ifX0=--15ca3815f01a5683e19ea0585d2eef9af9e441d7/20260102_182307.jpg)
+
+### GitHub editing
+So I started 3D printing the case, but I decided to print it in white and the top in black! In the meantime, I continued to write and upload things to GitHub to make sure everything met the requirements.
+I'm very excited that I got through all the hurdles, because at first I thought I just couldn't do it.
+For now, I've made a BOM, I've also uploaded the completed code, I've uploaded the Circuit diagram and some information to make it easier to connect.
+
+![image](https://blueprint.hackclub.com/user-attachments/representations/redirect/eyJfcmFpbHMiOnsiZGF0YSI6NjgzMjcsInB1ciI6ImJsb2JfaWQifX0=--93e39a38577abcb6b90454f9adf9b18b0de8ddbe/eyJfcmFpbHMiOnsiZGF0YSI6eyJmb3JtYXQiOiJqcGciLCJyZXNpemVfdG9fbGltaXQiOlsyMDAwLDIwMDBdLCJjb252ZXJ0Ijoid2VicCIsInNhdmVyIjp7InF1YWxpdHkiOjgwLCJzdHJpcCI6dHJ1ZX19LCJwdXIiOiJ2YXJpYXRpb24ifX0=--15ca3815f01a5683e19ea0585d2eef9af9e441d7/20260102_213532.jpg)
+
+### Putting things in the case
+I finished the last part - the case. It took me a while to remove the supports, cut off the gaps and I really like this design! The cable to the motor runs from the side and the power cable that powers the ESP32 runs from the back!
+I glued the top with normal super glue and put the buzzer close to the hole so that it would be better heard, but I decided that I would still edit the code in the end to fine-tune the RFID, but mainly to increase the "volume" of the buzzer, because it was not audible before.
+
+![image](https://blueprint.hackclub.com/user-attachments/representations/redirect/eyJfcmFpbHMiOnsiZGF0YSI6Njg0MzUsInB1ciI6ImJsb2JfaWQifX0=--485f35d9b7ece334172e25f3c3eb1194bb3a1c00/eyJfcmFpbHMiOnsiZGF0YSI6eyJmb3JtYXQiOiJqcGciLCJyZXNpemVfdG9fbGltaXQiOlsyMDAwLDIwMDBdLCJjb252ZXJ0Ijoid2VicCIsInNhdmVyIjp7InF1YWxpdHkiOjgwLCJzdHJpcCI6dHJ1ZX19LCJwdXIiOiJ2YXJpYXRpb24ifX0=--15ca3815f01a5683e19ea0585d2eef9af9e441d7/20260102_222631.jpg)
+
+**After about +- 26.5 hours I have finished this project and I am very proud of it. I was able to create my first project with ESP32!**
+## How it works:
+The RFID reader waits for the UID, if it is enabled in the system, the **motor** will turn, if not, it will not let you in. Turning the **buzzer** on or off can be controlled via a website running on the **IP address**.
+After **10 attempts**, the reader is blocked for a while to prevent unknown cards from being tried over and over again.
+- _Host mode:_ It can temporarily grant permission to a card for 2 minutes, and it can be extended or canceled
+- _Lockdown mode:_ You can turn this mode on manually or set a time when it will turn on and turn off later. When it is on, the card cannot be scanned at that time and I cannot add a new card.
+- _Scan new tag:_ You can add a tag permanently and change its name or remove it
+- _Release latch:_ You can open the door manually
+- You can also turn on/off the LED, buzzer, reader,...
+
+_Here is a youtube video where you can see how it works:_ [Link](https://youtu.be/qIwMznMcJI0)
+
+## Wiring:
+
+### RFID Reader (MFRC522)
+- SDA (SS): GPIO 21
+- SCK: GPIO 18
+- MOSI: GPIO 23
+- MISO: GPIO 19
+- RST: GPIO 22
+- 3.3V: 3.3V
+- GND: GND
+
+### Stepper Motor (ULN2003 Driver)
+- IN1: GPIO 32
+- IN2: GPIO 33
+- IN3: GPIO 27
+- IN4: GPIO 14
+- VCC: 5V (External)
+- GND: GND
+
+### RGB LED Indicator
+- Red: GPIO 25
+- Green: GPIO 26
+- Blue: GPIO 4
+- GND: GND
+
+### Buzzer
+- Pin: GPIO 2
+- GND: GND
+
+### Technical Notes
+- **Power:** The RFID module must be powered by 3.3V. Using 5V will damage the chip!
+
+
+## Scripts
+The entire script is only one and has about **300 lines**, so just upload it via **Arduino IDE** and everything should work.
+
+## Libraries:
+
+```
+- MFRC522.h
+- ESPAsyncWebServer.h
+- AsyncTCP.h
+- Stepper.h
+```
 
 
