@@ -9,8 +9,8 @@
 #include "time.h"
 
 // PINOUT!!
-const char* ssid = "WIFI";
-const char* password = "PASSWORD";
+const char* ssid = "Vory_EXT";
+const char* password = "Pazout2604";
 const char* adminUser = "admin";
 const char* adminPass = "admin123";
 
@@ -59,13 +59,20 @@ struct Log { String t; String n; String res; };
 std::deque<Log> logs;
 
 void setLED(int r, int g, int b) { 
-  digitalWrite(L_R, (ledsOn || motorPhase > 0 || greenFeedback || redFeedbackEnd > millis()) && r > 0 ? HIGH : LOW);
-  digitalWrite(L_G, (ledsOn || motorPhase > 0 || greenFeedback || redFeedbackEnd > millis()) && g > 0 ? HIGH : LOW);
-  digitalWrite(L_B, (ledsOn || motorPhase > 0 || greenFeedback || redFeedbackEnd > millis()) && b > 0 ? HIGH : LOW);
+  // Pokud jsou LED vypnuté v nastavení, ale probíhá feedback nebo motor, stejně se rozsvítí
+  bool override = (motorPhase > 0 || greenFeedback || redFeedbackEnd > millis() || strikes >= 10);
+  if (!ledsOn && !override) {
+    digitalWrite(L_R, LOW); digitalWrite(L_G, LOW); digitalWrite(L_B, LOW);
+    return;
+  }
+  digitalWrite(L_R, r > 0 ? HIGH : LOW);
+  digitalWrite(L_G, g > 0 ? HIGH : LOW);
+  digitalWrite(L_B, b > 0 ? HIGH : LOW);
 }
 
+// Vyšší frekvence pro pocitově vyšší hlasitost
 void sound(int f, int d) { if(buzzOn) tone(BUZZ, f, d); }
-void actionBeep() { tone(BUZZ, 1200, 50); }
+void actionBeep() { sound(2500, 50); } // Pronikavější pípnutí
 
 void loadUsers() {
   users.clear();
@@ -103,6 +110,7 @@ bool isLockdownActive() {
   }
   return lockdownManual;
 }
+
 //začátek toho nechutnýho kódu (Ale je uspornej)
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE html><html><head><meta charset="UTF-8"><style>
@@ -207,7 +215,7 @@ void setup() {
     Serial.print("RFID Check: 0x"); Serial.println(v, HEX);
     if(v != 0x00 && v != 0xFF) {
       Serial.println(">> RFID SUCCESSS! Module connected. <<");
-      tone(BUZZ, 2000, 100); delay(150); tone(BUZZ, 3000, 100); 
+      sound(3000, 100); delay(150); sound(4000, 100); 
       break; 
     }
     delay(1000);
@@ -266,19 +274,32 @@ void loop() {
   if(strikes >= 10 && (now - blockStart > 120000)) strikes = 0;
 
   door.setSpeed(12);
-  if (motorPhase == 1) { delay(100); door.step(1024); motorStartTime = now; motorPhase = 2; }
+  if (motorPhase == 1) { 
+    setLED(0, 255, 0); // VYNUCENÍ ZELENÉ PŘED POHYBEM
+    delay(100); 
+    door.step(1024); 
+    motorStartTime = now; 
+    motorPhase = 2; 
+  }
   else if (motorPhase == 2 && (now - motorStartTime > 3000)) { motorPhase = 3; }
-  else if (motorPhase == 3) { door.step(-1024); motorPhase = 0; greenFeedback = false; }
+  else if (motorPhase == 3) { 
+    setLED(0, 255, 0); // DRŽET ZELENOU PŘI NÁVRATU
+    door.step(-1024); 
+    motorPhase = 0; 
+    greenFeedback = false; 
+  }
 
+  // LOGIKA STAVOVÉ DIODY
   if (strikes >= 10) setLED(255, 0, 0);
-  else if (greenFeedback) setLED(0, 255, 0);
+  else if (motorPhase > 0 || greenFeedback) setLED(0, 255, 0);
   else if (now < redFeedbackEnd) setLED(255, 0, 0);
   else if (scanMode) setLED(255, 255, 0);
   else if (hostModeWaiting) setLED(0, 0, 255);
   else if (isLockdownActive()) setLED(255, 0, 0);
-  else setLED(10, 10, 20);
+  else setLED(10, 10, 20); // Standby modrá
 
   if (readerOn && !isLockdownActive() && strikes < 10 && motorPhase == 0) {
+    rfid.PCD_Init(); 
     if (rfid.PICC_IsNewCardPresent() && rfid.PICC_ReadCardSerial()) {
       String id = "";
       for(byte i=0; i<rfid.uid.size; i++) id += (rfid.uid.uidByte[i]<0x10?"0":"")+String(rfid.uid.uidByte[i], HEX);
@@ -287,11 +308,11 @@ void loop() {
       if(scanMode) {
         bool exists = false; for(auto &u : users) if(u.id == id) exists = true;
         if(!exists) { users.push_back({id, "NEW USER", "NEVER"}); saveUsers(); }
-        scanMode = false; sound(1200, 100);
+        scanMode = false; sound(2000, 100);
       } 
       else if(hostModeWaiting) {
-        hostCardUID = id; hostEndTime = now + 300000; // Základ je prostě 5 minut!
-        hostModeWaiting = false; sound(1000, 200); addLog("HOST 1 SET", id);
+        hostCardUID = id; hostEndTime = now + 300000;
+        hostModeWaiting = false; sound(2000, 200); addLog("HOST 1 SET", id);
       } 
       else {
         bool allowed = (id == hostCardUID && now < hostEndTime); 
@@ -302,12 +323,21 @@ void loop() {
           u.last = String(ts); break; 
         }
         if(allowed) {
-          addLog(name, "APPROVED"); strikes = 0; greenFeedback = true; motorPhase = 1; sound(800, 200); saveUsers();
+          addLog(name, "APPROVED"); strikes = 0; greenFeedback = true; 
+          setLED(0, 255, 0); // OKAMŽITÝ FEEDBACK
+          sound(1500, 100); sound(2000, 150); 
+          motorPhase = 1; 
+          saveUsers();
         } else {
-          strikes++; addLog(id, "DENIED"); redFeedbackEnd = now + 1000; if(strikes >= 10) blockStart = now; sound(200, 100);
+          strikes++; addLog(id, "DENIED"); 
+          redFeedbackEnd = now + 2000; 
+          setLED(255, 0, 0); // OKAMŽITÝ FEEDBACK
+          if(strikes >= 10) blockStart = now; 
+          sound(400, 500); // HLASITÉ DLOUHÉ "ERROR" BZUČENÍ
         }
       }
       rfid.PICC_HaltA(); rfid.PCD_StopCrypto1();
+      delay(1500); 
     }
   }
 }
