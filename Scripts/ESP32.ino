@@ -9,8 +9,8 @@
 #include "time.h"
 
 // PINOUT!!
-const char* ssid = "Vory_EXT";
-const char* password = "Pazout2604";
+const char* ssid = "WIFI";
+const char* password = "PASS";
 const char* adminUser = "admin";
 const char* adminPass = "admin123";
 
